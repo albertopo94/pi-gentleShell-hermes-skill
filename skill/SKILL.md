@@ -30,22 +30,20 @@ run `pi --help` before relying on a flag. Do not invent flags.
 - Delegating a feature, refactor, or review to Pi instead of Claude/Codex/OpenCode
 - Long coding sessions with progress checks, or parallel worktree tasks
 
-## Auth model — agnostic, with local bridge troubleshooting
+## Auth model — provider-agnostic
 
-Pi's auth is provider-agnostic: it reads `~/.pi/agent/models.json` to
-determine the provider and model. The skill delegates to `pi -p` with
-`--model <provider/model>` — Pi handles the rest.
+Pi handles auth and provider selection natively via `~/.pi/agent/models.json`.
+Delegate with `pi -p` and let Pi use whatever provider and model it has configured.
+The skill does not specify, require, or know about any provider — if Pi has a
+default set, that is what runs. The agent never asks for or prints credentials.
 
-On this machine, Pi uses a local OpenAI-compatible gateway (agy-model-bridge)
-for Antigravity models. The skill includes troubleshooting guidance for this
-setup (below), but the delegation logic itself is agnostic: if you use
-OpenAI, Qwen, or another provider, the same `pi -p --model <provider/model>`
-pattern applies.
+Local setup notes (only relevant if you use a custom gateway like agy-model-bridge)
+are in "Troubleshooting" below and are never part of the happy path.
 
 ## One-Shot Tasks (preferred)
 
 ```
-terminal(command="pi -p 'Add dark mode toggle to settings' --no-session --model agy/gemini-3.8-flash-high", workdir="~/project", timeout=600)
+terminal(command="pi -p 'Add dark mode toggle to settings' --no-session", workdir="~/project", timeout=600)
 ```
 
 Useful modifiers:
@@ -66,7 +64,7 @@ use in a scratch dir; do not assume, document the finding if it changes).
 For iterative work needing multiple exchanges:
 
 ```
-terminal(command="pi --tui-mode regular --model agy/gemini-3.8-flash-high", workdir="~/project", background=true, pty=true)
+terminal(command="pi --tui-mode regular", workdir="~/project", background=true, pty=true)
 # Returns session_id
 
 process(action="submit", session_id="<id>", data="Implement OAuth refresh flow and add tests")
@@ -91,13 +89,13 @@ to `fullscreen`, which makes `capture-pane` output far less useful.
 | `--fork <path\|id>` | Fork a session |
 
 ```
-terminal(command="pi -c -p 'Now refactor the tests you wrote' --model agy/gemini-3.8-flash-high", workdir="~/project")
+terminal(command="pi -c -p 'Now refactor the tests you wrote'", workdir="~/project")
 ```
 
 ## Background mode for long one-shots
 
 ```
-terminal(command="pi -p 'Refactor the auth module to JWT and add tests' --model agy/gemini-3.8-flash-high", workdir="~/project", background=true)
+terminal(command="pi -p 'Refactor the auth module to JWT and add tests'", workdir="~/project", background=true)
 process(action="poll", session_id="<id>")
 process(action="log", session_id="<id>")
 ```
@@ -106,7 +104,7 @@ process(action="log", session_id="<id>")
 
 ```
 terminal(command="git worktree add -b fix/issue-78 ../<repo>-worktrees/issue-78 main", workdir="~/project")
-terminal(command="pi -p 'Fix issue #78: <description>. Commit when done.' --model agy/gemini-3.8-flash-high", workdir="../<repo>-worktrees/issue-78", background=true)
+terminal(command="pi -p 'Fix issue #78: <description>. Commit when done.'", workdir="../<repo>-worktrees/issue-78", background=true)
 # ... monitor, push, PR, then: git worktree remove <path>
 ```
 
@@ -150,18 +148,16 @@ If `pi -p` fails with a connection or model error, check the local setup:
 
 ## Pitfalls (verified on this machine)
 
-1. **Always pass `--model` explicitly.** `~/.pi/agent/settings.json` has a
-   stale default → Pi prints `Warning: No models match pattern...` otherwise.
-   Never rely on Pi's default model.
+1. **Do NOT pass `--model`** unless the user asks for one. Pi resolves its own
+   default provider and model. Passing one hardcodes a choice the user owns.
 2. **`gentle-pi` extension warning is harmless.** `quiet-tools.ts` registers a
    `codemode` tool shadowing the builtin. Cosmetic; add `--no-extensions` if
    the builtin codemode matters.
-3. **Auth lives ONLY in `~/.pi/agent/models.json`** (agy provider) — not in
-   `settings.json` or `auth.json` (both key-free). Missing file → run
-   `agy-bridge setup-pi`.
+3. **Pi may print a stale-model `Warning: No models match pattern "..."`** on
+   stderr while still working fine. Ignore it; the run is valid.
 4. **`GEMINI_API_KEY` in `~/.zshrc` is irrelevant** (and invalid). Never use it.
-5. **`pi --list-models` hangs** in non-interactive use. Read the catalog from
-   `models.json` instead.
+5. **`pi --list-models` hangs** in non-interactive use. Don't use it — you don't
+   need model discovery to delegate.
 6. **TUI defaults to fullscreen** — use `--tui-mode regular` for PTY sessions.
 7. One-shot `pi -p` does NOT need pty; the interactive TUI does.
 
@@ -173,12 +169,19 @@ If `pi -p` fails with a connection or model error, check the local setup:
    looks trivial. If you believe delegation is overkill, still delegate, then
    say so afterwards. Only skip delegation when the skill was NOT explicitly
    invoked and you are merely advising the user.
-1. **Delegate directly with `pi -p`** using `--model <provider/model>`. Pi handles provider auth natively via `~/.pi/agent/models.json`.
-2. **Troubleshoot on failure only:** if `pi -p` fails with a connection or model error, refer to the "Troubleshooting" section (run gateway check / `agy-bridge setup-pi` if on the agy setup). Do NOT block the happy path with preflight checks unless an error actually occurs.
+1. **Delegate directly with `pi -p`** — no provider, no `--model`, no key. Pi
+   uses whatever provider/model it has configured, exactly like the user's own
+   `pi` usage. Do NOT inspect, verify, or mention providers.
+2. **Troubleshoot on failure only:** if `pi -p` fails with a connection or
+   model error, refer to "Troubleshooting" below. Do NOT block the happy path
+   with preflight checks unless an error actually occurs.
 3. **Always set `workdir`** to the target repo; scope one Pi run per workdir.
-4. **Never print secrets**: `models.json` apiKey, `~/.agy-bridge/api_key`, or
-   any credential into replies, logs, or memory. Never ask the user for a key.
-5. **Bridge down → report, don't fix**: if troubleshooting reveals the gateway is down, tell the user to start `agy-bridge`; do not launch or repair the daemon autonomously.
+4. **Never print secrets or config contents**: never cat `models.json`, never
+   print apiKey fields, bridge keys, or provider config into replies, logs, or
+   memory. Never ask the user for a key.
+5. **Bridge/gateway down → report, don't fix**: if troubleshooting reveals a
+   local gateway is down, tell the user to start it; do not launch or repair
+   daemons autonomously.
 6. Prefer `pi -p` one-shots; interactive PTY only when iteration is needed.
 7. For long tasks, background + `process(poll/log)`; report progress from logs.
 8. **Report concrete outcomes**: files changed, tests run, remaining risks —
@@ -192,8 +195,8 @@ If `pi -p` fails with a connection or model error, check the local setup:
 ## Verification (smoke test)
 
 ```
-terminal(command="pi -p 'responde solo: OK' --no-session --no-tools --model agy/gemini-3.8-flash-high")
+terminal(command="pi -p 'responde solo: OK' --no-session --no-tools")
 ```
 
-Success: output contains `OK`, exits cleanly, no model/auth errors.
+Success: output contains `OK`, exits cleanly, no provider/auth errors.
 (Proven working end-to-end 2026-10-09 on this machine.)
