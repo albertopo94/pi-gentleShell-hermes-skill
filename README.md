@@ -22,11 +22,9 @@ iterative work, background for long tasks — and reports the result.
 ## Requirements
 
 - [Hermes Agent](https://hermes-agent.nousresearch.com/docs) with skills support
-- Pi CLI installed and working (tested against v1.1.0)
-- **Auth preflight:** this skill was built for a setup where Pi authenticates
-  through a local OpenAI-compatible gateway (agy-model-bridge). If you use
-  plain Pi auth, the delegation flow still applies; adapt the "Auth model" and
-  preflight sections to your provider.
+- Pi CLI installed, configured, and working (tested against v1.1.0)
+- Any provider/model configured in Pi — the skill delegates directly and
+  lets Pi resolve its own settings natively.
 
 ## Install
 
@@ -65,9 +63,9 @@ Then use it:
 ## Security notes
 
 - The skill never asks for an API key and instructs the agent to never print
-  credentials (including the local gateway key) into replies, logs, or memory.
-- The skill instructs the agent NOT to start or repair the auth gateway
-  autonomously — if it's down, you are told to start it yourself.
+  credentials or provider configs into replies, logs, or memory.
+- If a local gateway/proxy is used and goes down, the skill instructs the agent
+  to tell you so, never to start or repair background daemons autonomously.
 - User-level skills in `~/.hermes/skills/` are user-trusted by Hermes. Keep it
   MIT and local-friendly; nothing references the skill name in config, so
   removal is a folder delete.
