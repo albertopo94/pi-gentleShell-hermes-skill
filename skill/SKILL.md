@@ -1,25 +1,23 @@
 ---
 name: pi-own
-description: "Delegate coding to the Pi CLI via the agy-model-bridge gateway (features, refactors, reviews)."
+description: "Delegate coding to the Pi CLI from Hermes chat (features, refactors, reviews)."
 version: 1.0.0
 author: albertopo94 (user-owned, mirrors bundled claude-code/codex/opencode pattern)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [Coding-Agent, Pi, Delegation, agy-bridge, Code-Review, Refactoring]
+    tags: [Coding-Agent, Pi, Delegation, Code-Review, Refactoring]
     related_skills: [claude-code, codex, opencode]
 ---
 
 # Pi CLI (user-owned delegation skill)
 
 Delegate coding tasks to the Pi CLI via the Hermes terminal. This is a
-**custom, user-maintained** skill (hence `-own`): it encodes this machine's Pi
-setup, which authenticates through the **agy-model-bridge** gateway
-(a local OpenAI-compatible proxy; adapt or drop the auth section if your Pi
-uses ambient provider auth instead), not through ambient Pi OAuth. If an
-official `/pi` skill ever ships, the two can coexist; delete this folder to
-retire it, nothing else references it.
+**custom, user-maintained** skill (hence `-own`): `/pi-own <task>` runs the task
+through whatever Pi install and provider the user has configured — the skill is
+provider-agnostic. If an official `/pi` skill ever ships, the two can coexist;
+delete this folder to retire it, nothing else references it.
 
 Tested against Pi CLI **v1.1.0** (2026-10-09). Pi moves fast: when in doubt,
 run `pi --help` before relying on a flag. Do not invent flags.
@@ -131,6 +129,12 @@ Place worktrees as siblings under the repo parent (CodeGraph-friendly); never un
 
 Other verified commands: `pi auth check --provider/--model`, `pi config` (TUI),
 `pi install/remove/update/list`, `pi mcp`, `pi <command> --help`.
+
+**No Pi equivalent (do not claim parity with claude-code):** `--max-turns`,
+cost/budget cap, `--json-schema` validation, single `--bare` flag,
+`--dangerously-skip-permissions` (`--approve` is weaker and only trusts
+project-local files), `--from-pr`, built-in worktree/tmux. Mitigate with
+bounded prompts + `--no-session` + human review of the diff.
 
 ## Troubleshooting & local setup notes (agy-model-bridge)
 
