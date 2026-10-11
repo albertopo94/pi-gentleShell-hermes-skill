@@ -57,7 +57,8 @@ Then use it:
 | Path | Purpose |
 |------|---------|
 | `skill/SKILL.md` | The product. What gets installed. |
-| `SPEC.md` | Product spec: origin, design decisions, verified Pi facts, pitfalls, acceptance criteria. |
+| `SPEC-v3.md` | **Current** product spec: promises, verified facts, acceptance status. |
+| `SPEC.md` | Historical spec (v1 design, superseded — kept as design record). |
 | `install.sh` | Installer (copy + backup). |
 
 ## Security notes
