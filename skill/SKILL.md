@@ -30,43 +30,17 @@ run `pi --help` before relying on a flag. Do not invent flags.
 - Delegating a feature, refactor, or review to Pi instead of Claude/Codex/OpenCode
 - Long coding sessions with progress checks, or parallel worktree tasks
 
-## Auth model — agy-model-bridge (the key difference)
+## Auth model — agnostic, with local bridge troubleshooting
 
-Pi on this machine has **no upstream credentials anywhere in its config**. Auth
-flow:
+Pi's auth is provider-agnostic: it reads `~/.pi/agent/models.json` to
+determine the provider and model. The skill delegates to `pi -p` with
+`--model <provider/model>` — Pi handles the rest.
 
-```
-agy-bridge setup-pi   # writes ~/.pi/agent/models.json with provider "agy"
-pi -p "..."           # Pi reads models.json automatically — no key handling
-```
-
-- `agy-bridge` is a local OpenAI-compatible gateway
-  (`http://127.0.0.1:24980`) proxying to Google/Antigravity models using the
-  user's `agy` auth. State lives in `~/.agy-bridge/`.
-- `agy-bridge setup-pi` registers provider `agy` in
-  `~/.pi/agent/models.json` (`baseUrl: http://127.0.0.1:24980/v1`,
-  `api: openai-completions`, plus a model catalog). The `apiKey` in that file
-  is a **local loopback key for the bridge**, not a real credential.
-- **The skill NEVER asks the user for an API key** and NEVER prints the
-  contents of `models.json`'s `apiKey` or `~/.agy-bridge/api_key` in replies,
-  logs, or memory.
-
-### Readiness preflight (run before first delegation each session; idempotent)
-
-1. **Gateway up?**
-   `terminal(command="curl -s -m 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:24980/")`
-   → expect `200`. If not: tell the user to start `agy-bridge` themselves.
-   Do NOT start or repair the daemon autonomously (it needs their Antigravity auth).
-2. **Pi configured?** `~/.pi/agent/models.json` exists and contains the `agy`
-   provider. If missing → run `agy-bridge setup-pi` (idempotent, makes backups).
-   The file can legitimately disappear (bridge restore/uninstall) — always
-   preflight, never assume persistence.
-3. Then delegate with an explicit `--model agy/<model>` (see Pitfalls).
-
-Model catalog: read `providers.agy.models[].id` from `~/.pi/agent/models.json`
-(e.g. via `python3 -c` or `jq` on the models list only — never dump apiKey).
-Known-good default: `agy/gemini-3.8-flash-high`. Do NOT use
-`pi --list-models` — it hangs in non-interactive use (>30s verified).
+On this machine, Pi uses a local OpenAI-compatible gateway (agy-model-bridge)
+for Antigravity models. The skill includes troubleshooting guidance for this
+setup (below), but the delegation logic itself is agnostic: if you use
+OpenAI, Qwen, or another provider, the same `pi -p --model <provider/model>`
+pattern applies.
 
 ## One-Shot Tasks (preferred)
 
@@ -160,11 +134,19 @@ Place worktrees as siblings under the repo parent (CodeGraph-friendly); never un
 Other verified commands: `pi auth check --provider/--model`, `pi config` (TUI),
 `pi install/remove/update/list`, `pi mcp`, `pi <command> --help`.
 
-**No Pi equivalent (do not claim parity with claude-code):** `--max-turns`,
-cost/budget cap, `--json-schema` validation, single `--bare` flag,
-`--dangerously-skip-permissions` (`--approve` is weaker and only trusts
-project-local files), `--from-pr`, built-in worktree/tmux. Mitigate with
-bounded prompts + `--no-session` + human review of the diff.
+## Troubleshooting & local setup notes (agy-model-bridge)
+
+If `pi -p` fails with a connection or model error, check the local setup:
+
+1. **Local gateway check:** if using `agy/*` models, verify the local gateway is running:
+   `curl -s -m 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:24980/` → expect `200`.
+   If down, tell the user to start `agy-bridge`. Do NOT attempt to start or repair the daemon autonomously.
+2. **Missing provider config:** if `~/.pi/agent/models.json` is missing or lacks the provider,
+   run `agy-bridge setup-pi` to regenerate it.
+3. **Never ask for or print secrets:** never ask the user for an API key, and never print
+   `models.json` `apiKey` fields or `~/.agy-bridge/api_key` in replies, logs, or memory.
+4. **Model discovery:** read model IDs from `~/.pi/agent/models.json` (or use the
+   configured default). Do NOT use `pi --list-models` in non-interactive sessions — it hangs (>30s).
 
 ## Pitfalls (verified on this machine)
 
@@ -187,18 +169,16 @@ bounded prompts + `--no-session` + human review of the diff.
 
 0. **Explicit `/pi-own` invocation means DELEGATE — always.** When the user
    typed `/pi-own`, running the task through the `pi` CLI is the user's
-   explicit will, not an optimization to second-guess. Run the preflight and
-   delegate even if the task looks trivial (reading a file, listing a
-   directory). If you believe delegation is overkill, still delegate, then say
-   so afterwards. Only skip delegation when the skill was NOT explicitly
+   explicit will, not an optimization to second-guess. Delegate even if the task
+   looks trivial. If you believe delegation is overkill, still delegate, then
+   say so afterwards. Only skip delegation when the skill was NOT explicitly
    invoked and you are merely advising the user.
-1. **Preflight first** (gateway + models.json) once per session before delegating.
-2. **Always set `workdir`** to the target repo; scope one Pi run per workdir.
-3. **Always pass `--model agy/<model>`** — read the catalog if unsure of ids.
+1. **Delegate directly with `pi -p`** using `--model <provider/model>`. Pi handles provider auth natively via `~/.pi/agent/models.json`.
+2. **Troubleshoot on failure only:** if `pi -p` fails with a connection or model error, refer to the "Troubleshooting" section (run gateway check / `agy-bridge setup-pi` if on the agy setup). Do NOT block the happy path with preflight checks unless an error actually occurs.
+3. **Always set `workdir`** to the target repo; scope one Pi run per workdir.
 4. **Never print secrets**: `models.json` apiKey, `~/.agy-bridge/api_key`, or
    any credential into replies, logs, or memory. Never ask the user for a key.
-5. **Bridge down → report, don't fix**: tell the user to start `agy-bridge`;
-   do not launch or repair the daemon autonomously.
+5. **Bridge down → report, don't fix**: if troubleshooting reveals the gateway is down, tell the user to start `agy-bridge`; do not launch or repair the daemon autonomously.
 6. Prefer `pi -p` one-shots; interactive PTY only when iteration is needed.
 7. For long tasks, background + `process(poll/log)`; report progress from logs.
 8. **Report concrete outcomes**: files changed, tests run, remaining risks —
