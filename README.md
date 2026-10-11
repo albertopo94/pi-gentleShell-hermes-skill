@@ -15,8 +15,8 @@ delete its folder — nothing else references the name.
 
 | Slash command | Drives | One-shot | Interactive TUI |
 |---|---|---|---|
-| `/pi-own` | the `pi` CLI | `pi -p '...'` | `pi --tui-mode regular` (PTY) |
-| `/gentle-shell-own` | the `gentle-shell` launcher (Gentle Shell workspace for Pi) | `gentle-shell -p '...'` | `gentle-shell --tui-mode regular` (PTY) |
+| `/pi-own` | the [Pi](https://github.com/earendil-works/pi) CLI | `pi -p '...'` | `pi --tui-mode regular` (PTY) |
+| `/gentle-shell-own` | the [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell) launcher (Gentle Shell workspace for Pi) | `gentle-shell -p '...'` | `gentle-shell --tui-mode regular` (PTY) |
 
 Adding the next one (e.g. `/agy-own`) is: new folder under `skills/`, new spec
 under `specs/`, done. The installer picks it up automatically.
@@ -37,9 +37,11 @@ and model you configured.
 ## Requirements
 
 - [Hermes Agent](https://hermes-agent.nousresearch.com/docs) with skills support
-- For `/pi-own`: Pi CLI installed and working (tested against v1.1.0)
-- For `/gentle-shell-own`: `gentle-shell` installed and working
-  (`npm i -g gentle-pi`)
+- For `/pi-own`: [Pi](https://github.com/earendil-works/pi) CLI installed and
+  working (tested against v1.1.0)
+- For `/gentle-shell-own`: [gentle-shell](https://github.com/Gentleman-Programming/gentle-shell)
+  (npm package [`gentle-pi`](https://www.npmjs.com/package/gentle-pi))
+  installed and working (`npm i -g gentle-pi`)
 
 ## Install
 
