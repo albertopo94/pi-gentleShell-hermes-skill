@@ -2,14 +2,14 @@
 
 The contract for the shipped product, rewritten 2026-10-11 after live end-to-end
 verification. Supersedes the v1 design in `SPEC.md` (kept as historical record).
-The operational contract the agent actually follows is `skill/SKILL.md`; this
+The operational contract the agent actually follows is `skills/pi-own/SKILL.md`; this
 document is the product-level spec: what it promises, why, and what was proven.
 
 ## 1. Product
 
 A local, user-owned Hermes skill (`/pi-own <task>`) that delegates coding tasks
 to the Pi CLI from a Hermes chat, mirroring the bundled `/claude-code`,
-`/codex`, `/opencode` skills. Slash invocation injects `skill/SKILL.md` into the
+`/codex`, `/opencode` skills. Slash invocation injects `skills/pi-own/SKILL.md` into the
 agent context; the agent drives the real `pi` binary through its terminal tool.
 
 Naming: `-own` namespaces it as user-maintained so a future official `/pi` skill

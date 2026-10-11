@@ -1,21 +1,30 @@
 #!/usr/bin/env bash
-# Install the pi-own Hermes skill into ~/.hermes/skills/
+# Install all -own Hermes skills in this repo into ~/.hermes/skills/
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$REPO_DIR/skill/SKILL.md"
-DEST_DIR="$HOME/.hermes/skills/autonomous-ai-agents/pi-own"
-DEST="$DEST_DIR/SKILL.md"
+DEST_BASE="$HOME/.hermes/skills/autonomous-ai-agents"
+installed=0
 
-[ -f "$SRC" ] || { echo "error: $SRC not found (run from the repo root)"; exit 1; }
+for src in "$REPO_DIR"/skills/*/SKILL.md; do
+  skill_name="$(basename "$(dirname "$src")")"
+  dest_dir="$DEST_BASE/$skill_name"
+  dest="$dest_dir/SKILL.md"
 
-if [ -f "$DEST" ] && ! diff -q "$SRC" "$DEST" >/dev/null 2>&1; then
-  cp "$DEST" "$DEST.bak-$(date +%Y%m%d%H%M%S)"
-  echo "existing SKILL.md backed up"
+  if [ -f "$dest" ] && ! diff -q "$src" "$dest" >/dev/null 2>&1; then
+    cp "$dest" "$dest.bak-$(date +%Y%m%d%H%M%S)"
+    echo "[$skill_name] existing SKILL.md backed up"
+  fi
+
+  mkdir -p "$dest_dir"
+  cp "$src" "$dest"
+  echo "[$skill_name] installed: $dest"
+  installed=$((installed + 1))
+done
+
+if [ "$installed" -eq 0 ]; then
+  echo "error: no skills found in $REPO_DIR/skills/" >&2
+  exit 1
 fi
 
-mkdir -p "$DEST_DIR"
-cp "$SRC" "$DEST"
-echo "Installed: $DEST"
-echo "Verify with: hermes skills list | grep pi-own"
-echo "Then type /pi-own in a Hermes chat."
+echo "Done ($installed skills). Verify with: hermes skills list | grep -e pi-own -e gentle-shell-own"

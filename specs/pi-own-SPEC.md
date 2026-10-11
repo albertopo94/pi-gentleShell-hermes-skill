@@ -4,7 +4,7 @@
 > original design (agy-bridge preflight, pinned `--model agy/...`). After live
 > testing the shipped product became fully provider-agnostic: bare `pi -p`, no
 > preflight, no model pinning, TUI findings encoded as pitfalls. The contract of
-> the product is `skill/SKILL.md`; the current spec is `SPEC-v3.md`. See commits
+> the product is `skills/pi-own/SKILL.md`; the current spec is `specs/pi-own-SPEC-v3.md`. See commits
 > `126b87e` → `f7db52b`. Sections §6 (auth model), §8/§9 (model pinning), §9
 > pitfall 1, and §11 acceptance criteria 3/5 no longer reflect reality.
 
