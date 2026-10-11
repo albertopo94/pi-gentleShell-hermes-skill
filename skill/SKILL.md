@@ -66,16 +66,24 @@ terminal(command="pi --tui-mode regular", workdir="~/project", background=true, 
 # Returns session_id
 
 process(action="submit", session_id="<id>", data="Implement OAuth refresh flow and add tests")
+process(action="write",  session_id="<id>", data="\r")   # CRITICAL: submit alone does NOT dispatch
 process(action="poll", session_id="<id>")
 process(action="log", session_id="<id>")
 process(action="submit", session_id="<id>", data="Now add token-expiry error handling")
+process(action="write",  session_id="<id>", data="\r")
 
 # Exit
 process(action="write", session_id="<id>", data="\x03")   # or process(action="kill", ...)
 ```
 
-Always pass `--tui-mode regular` for PTY capture — the user's settings default
-to `fullscreen`, which makes `capture-pane` output far less useful.
+**Two non-obvious things (verified live 2026-10-11):**
+
+1. **`submit` does not send the prompt.** It types the text into the input box and
+   stops. Always follow it with `write` sending `\r` to dispatch. Same pattern for
+   Claude Code's TUI on this machine. If you `log` and see the prompt text sitting
+   in the input box with no working spinner, that is the symptom — send `\r`.
+2. **Always pass `--tui-mode regular`** for PTY capture — the default TUI is
+   `fullscreen`, which makes `capture-pane` output far less useful.
 
 ## Session continuation
 
@@ -159,11 +167,19 @@ If `pi -p` fails with a connection or model error, check the local setup:
    the builtin codemode matters.
 3. **Pi may print a stale-model `Warning: No models match pattern "..."`** on
    stderr while still working fine. Ignore it; the run is valid.
-4. **`GEMINI_API_KEY` in `~/.zshrc` is irrelevant** (and invalid). Never use it.
-5. **`pi --list-models` hangs** in non-interactive use. Don't use it — you don't
+4. **`GEMINI_API_KEY` in `~/.zshrc` can contaminate the TUI.** If the TUI's
+   default model resolves to Google, it may pick up this (invalid) key →
+   `Error 400: API key not valid` even while `pi -p` works fine. Suggest the
+   user clean it from their shell profile; the agent never touches it.
+5. **Print mode and TUI can resolve DIFFERENT default models.** If `pi -p`
+   works but the TUI fails with an auth/model error on a model print mode never
+   uses, the TUI is resolving a stale default. Fix: user picks a valid default
+   in `pi config`; quick workaround is launching the TUI with an explicit
+   `--model <provider/id>` — the ONLY case where the agent passes `--model`.
+6. **`pi --list-models` hangs** in non-interactive use. Don't use it — you don't
    need model discovery to delegate.
-6. **TUI defaults to fullscreen** — use `--tui-mode regular` for PTY sessions.
-7. One-shot `pi -p` does NOT need pty; the interactive TUI does.
+7. **TUI defaults to fullscreen** — use `--tui-mode regular` for PTY sessions.
+8. One-shot `pi -p` does NOT need pty; the interactive TUI does.
 
 ## Rules for the Hermes agent
 
@@ -175,7 +191,8 @@ If `pi -p` fails with a connection or model error, check the local setup:
    invoked and you are merely advising the user.
 1. **Delegate directly with `pi -p`** — no provider, no `--model`, no key. Pi
    uses whatever provider/model it has configured, exactly like the user's own
-   `pi` usage. Do NOT inspect, verify, or mention providers.
+   `pi` usage. Do NOT inspect, verify, or mention providers. (Sole exception:
+   a TUI failing on a stale default — see pitfall 5.)
 2. **Troubleshoot on failure only:** if `pi -p` fails with a connection or
    model error, refer to "Troubleshooting" below. Do NOT block the happy path
    with preflight checks unless an error actually occurs.
