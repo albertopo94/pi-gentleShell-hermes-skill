@@ -185,6 +185,13 @@ bounded prompts + `--no-session` + human review of the diff.
 
 ## Rules for the Hermes agent
 
+0. **Explicit `/pi-own` invocation means DELEGATE — always.** When the user
+   typed `/pi-own`, running the task through the `pi` CLI is the user's
+   explicit will, not an optimization to second-guess. Run the preflight and
+   delegate even if the task looks trivial (reading a file, listing a
+   directory). If you believe delegation is overkill, still delegate, then say
+   so afterwards. Only skip delegation when the skill was NOT explicitly
+   invoked and you are merely advising the user.
 1. **Preflight first** (gateway + models.json) once per session before delegating.
 2. **Always set `workdir`** to the target repo; scope one Pi run per workdir.
 3. **Always pass `--model agy/<model>`** — read the catalog if unsure of ids.
